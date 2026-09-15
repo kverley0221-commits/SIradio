@@ -11,17 +11,23 @@
 static const uint8_t config[] = RADIO_CONFIGURATION_DATA_ARRAY;
 static const uint8_t frr_modes[] = {RF_FRR_CTL_A_MODE_4};
 
+/// @brief Initialize RadioAPI data
+/// @param _cs Chip select pin
 RadioAPI::RadioAPI(uint8_t _cs)
 {
     spiDriver = new SPIDriver(_cs);
 }
 
+/// @brief Initialize spi driver and load config
+/// @return If loading config was successful or not
 bool RadioAPI::begin()
 {
     spiDriver->begin();
     return loadConfig();
 }
 
+/// @brief loads config header file into radio chip
+/// @return true if confid loaded successfully, false if not
 bool RadioAPI::loadConfig()
 {
     uint16_t i = 0;
@@ -50,6 +56,7 @@ bool RadioAPI::loadConfig()
     return true;
 }
 
+/// @brief Clears all interrupts of radio chip
 void RadioAPI::clearInterrupts()
 {
     spiBuff[0] = 0x20;
@@ -60,6 +67,8 @@ void RadioAPI::clearInterrupts()
     spiDriver->sendCmd(4, spiBuff);
 }
 
+/// @brief Reads TX/RX FIFO data
+/// @param clrBit either clears or leaves FIFO data as is
 void RadioAPI::clearFifo(uint8_t clrBit)
 {
     spiBuff[0] = 0x15;
@@ -68,16 +77,22 @@ void RadioAPI::clearFifo(uint8_t clrBit)
     spiDriver->sendCmd(2, spiBuff);
 }
 
+/// @brief set the channel for the radio to transmit on
+/// @param TX_Channel Radio channel number
 void RadioAPI::radio_Set_TX_Channel(uint8_t TX_Channel)
 {
     tx_Channel = TX_Channel;
 }
 
+/// @brief set the channel for the radio to receive in
+/// @param RX_Channel Radio channel number
 void RadioAPI::radio_Set_RX_Channel(uint8_t RX_Channel)
 {
     rx_Channel = RX_Channel;
 }
 
+/// @brief Write to the TX FIFO
+/// @param msg Message created by user from Serial
 void RadioAPI::writeTXFifo(const char *msg)
 {
     msgWrite[0] = 0x66;
@@ -86,12 +101,14 @@ void RadioAPI::writeTXFifo(const char *msg)
     spiDriver->sendCmd(pktSize + 2, msgWrite);
 }
 
+/// @brief Read the first byte of data from RX FIFO for the packet size
 void RadioAPI::get_RX_FIFO_Count()
 {
     spiDriver->readData(0x77, 1, 0, spiBuff);
     pktSize = spiBuff[0];
 }
 
+/// @brief API command to enter TX mode and transmit data written in TX FIFO
 void RadioAPI::start_TX_Cmd()
 {
 
@@ -106,6 +123,7 @@ void RadioAPI::start_TX_Cmd()
     spiDriver->sendCmd(7, spiBuff);
 }
 
+/// @brief Prepare the radio to enter TX mode and transmit a fixed packet
 void RadioAPI::radio_Start_TX()
 {
     const char msg[] = RADIO_CONFIGURATION_DATA_CUSTOM_PAYLOAD;
@@ -115,6 +133,7 @@ void RadioAPI::radio_Start_TX()
     start_TX_Cmd();
 }
 
+/// @brief Prepare the radio to enter TX mode and transmit a custom packet
 void RadioAPI::radio_Start_TX(const char *msg)
 {
     pktSize = strlen(msg);
@@ -124,6 +143,7 @@ void RadioAPI::radio_Start_TX(const char *msg)
     start_TX_Cmd();
 }
 
+/// @brief API command to enter RX mode
 void RadioAPI::start_RX_Cmd()
 {
     spiBuff[0] = 0x32;
@@ -138,6 +158,7 @@ void RadioAPI::start_RX_Cmd()
     spiDriver->sendCmd(8, spiBuff);
 }
 
+/// @brief Prepare the radio to enter RX mode
 void RadioAPI::radio_Start_RX()
 {
     clearInterrupts();
@@ -145,6 +166,8 @@ void RadioAPI::radio_Start_RX()
     start_RX_Cmd();
 }
 
+/// @brief Read data stored in RX FIFO
+/// @param msg Array stored with the RX FIFO data
 void RadioAPI::read_RX_FIFO(const char *msg)
 {
     get_RX_FIFO_Count();
@@ -154,6 +177,9 @@ void RadioAPI::read_RX_FIFO(const char *msg)
     clearInterrupts();
 }
 
+/// @brief Read interrupt data from radio
+/// @param grp What group of interrupts to read from
+/// @return interrupt group data
 uint8_t RadioAPI::read_Interrupts(uint8_t grp)
 {
     spiBuff[0] = 0x20;
@@ -184,6 +210,11 @@ uint8_t RadioAPI::read_Interrupts(uint8_t grp)
     return spiBuff[index];
 }
 
+/// @brief API command to configure certain properties of the radio
+/// @param grp byte value specifing group
+/// @param numProps number of properties to be configured
+/// @param index where to start configuring properties
+/// @param data Array of data to configure radio
 void RadioAPI::set_Property(uint8_t grp, uint8_t numProps, uint8_t index, uint8_t *data)
 {
     spiBuff[0] = 0x11;
@@ -195,9 +226,10 @@ void RadioAPI::set_Property(uint8_t grp, uint8_t numProps, uint8_t index, uint8_
     spiDriver->sendCmd(4 + numProps, spiBuff);
 }
 
+/// @brief Split or unsplit radio FIFO
+/// @param enable_Bit 
 void RadioAPI::radio_Enable_Split_FIFO(bool enable_Bit)
 {
-    // enable_Bit ? spiBuff[0] = SPLIT_FIFO_MODE_ENABLE : spiBuff[0] = SPLIT_FIFO_MODE_DISABLE;
     if (enable_Bit)
     {
         // Set the max FILED_LENGTH_1 to 64 bytes and split the FIFO
@@ -218,11 +250,16 @@ void RadioAPI::radio_Enable_Split_FIFO(bool enable_Bit)
     }
 }
 
+/// @brief Read the configuration modes of radio FRRs
+/// @param modes 
 void RadioAPI::get_FRR_Mode(uint8_t* modes)
 {
     memcpy(modes, &frr_modes[4], 4);
 }
 
+/// @brief Read the data from a specified FRR
+/// @param index Which FRR to read
+/// @return Data read from FRR
 uint8_t RadioAPI::get_FRR_Data(uint8_t index)
 {
     switch (index)
@@ -245,27 +282,6 @@ uint8_t RadioAPI::get_FRR_Data(uint8_t index)
     }
     return spiBuff[0];
 }
-
-// void RadioAPI::setProperty(uint8_t grp, uint8_t numProps, uint8_t startProp, const uint8_t *data)
-// {
-//     spiBuff[0] = 0x11;
-//     spiBuff[1] = grp;
-//     spiBuff[2] = numProps;
-//     spiBuff[3] = startProp;
-//     memcpy(&spiBuff[4], data, (size_t)numProps);
-
-//     spiDriver->sendCmd(numProps + 4, spiBuff);
-// }
-
-// void RadioAPI::radio_PA_Level(uint8_t level)
-// {
-//     setProperty(0x22, 0x01, level);
-// }
-
-// void RadioAPI::radio_Set_Pkt_Size(const uint8_t *size, uint8_t numBytes)
-// {
-//     setProperty(0x12, 0x02, 0x0D, size);
-// }
 
 // TODO: Heavy instruction and logic optimization
 // TODO: Add Fixed-packet logic check

@@ -11,21 +11,12 @@ void setup()
   Serial.begin(115200);
   delay(10000); // allow time to open the serial monitor
 
-  if (!radio.begin())
-  {
-    Serial.println("Radio initialization failed!");
-  }
-  else
-  {
-    Serial.println("Radio initialized. You may now enter your messages.");
-  }
+  radio.begin();
+  radio.radio_RX_Mode();
 }
 
 void loop()
 {
-  // --- TX path: if the user typed something, send it ---
-  radio.radio_RX_Mode();
-  delay(5);
   if (Serial.available() != 0)
   {
     msgStr = Serial.readString();
@@ -44,17 +35,9 @@ void loop()
       else
         Serial.println("Packet was not sent");
     }
+    radio.radio_RX_Mode();
   }
-  // --- RX path: no outgoing message, so listen instead ---
-  else
-  {
-    // radio.radio_RX_Mode();
-    // delay(10);
 
-    if (radio.check_Received_Packet())
-    {
-      Serial.print("Received: ");
-      radio.printMsg();
-    }
-  }
+  if (radio.check_Received_Packet())
+    radio.printMsg();
 }

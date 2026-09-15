@@ -15,6 +15,7 @@ private:
 
 public:
     SIradio(uint8_t _sdn, uint8_t _cs, uint8_t nirq);
+    SIradio(uint8_t _sdn, uint8_t _cs);
     bool begin();
     void set_TX_Channel(uint8_t TX_Channel);
     void set_RX_Channel(uint8_t RX_Channel);

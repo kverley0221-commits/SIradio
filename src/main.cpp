@@ -22,19 +22,16 @@ void loop()
     msgStr = Serial.readString();
     msgStr.trim();
 
-    if (msgStr.length() > 0)
-    {
-      Serial.print("Sending: ");
-      Serial.println(msgStr);
+    Serial.print("Sending: ");
+    Serial.println(msgStr);
 
-      if (radio.sendMessage(msgStr))
-      {
-        Serial.println("Packet sent");
-        delay(20);
-      }
-      else
-        Serial.println("Packet was not sent");
+    if (radio.sendMessage(msgStr))
+    {
+      Serial.println("Packet sent");
+      delay(20);
     }
+    else
+      Serial.println("Packet was not sent");
     radio.radio_RX_Mode();
   }
 

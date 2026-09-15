@@ -14,6 +14,17 @@ SIradio::SIradio(uint8_t _sdn, uint8_t _cs, uint8_t _nirq)
     pinMode(_nirqPin, INPUT);
 }
 
+/// @brief Initialize SIradio class data
+/// @param _sdn Pin for resetting radio
+/// @param _cs Chip select pin for spi driver
+SIradio::SIradio(uint8_t _sdn, uint8_t _cs)
+{
+    _sdnPin = _sdn;
+    radioAPI = new RadioAPI(_cs);
+    pinMode(_sdnPin, OUTPUT);
+    pinMode(_nirqPin, INPUT);
+}
+
 /// @brief Perform radio hardware reset and config
 /// @return Wheather or not the radio successfully configured
 bool SIradio::begin()

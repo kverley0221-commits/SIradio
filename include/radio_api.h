@@ -8,7 +8,7 @@ private:
     SPIDriver *spiDriver = NULL;
     uint8_t spiBuff[16];
     uint8_t msgWrite[128];
-    uint8_t pktSize;
+    uint8_t payloadSize;
     uint8_t tx_Channel;
     uint8_t rx_Channel;
 

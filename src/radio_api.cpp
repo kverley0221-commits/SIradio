@@ -96,16 +96,16 @@ void RadioAPI::radio_Set_RX_Channel(uint8_t RX_Channel)
 void RadioAPI::writeTXFifo(const char *msg)
 {
     msgWrite[0] = 0x66;
-    msgWrite[1] = pktSize;
-    memcpy(&msgWrite[2], msg, (size_t)pktSize);
-    spiDriver->sendCmd(pktSize + 2, msgWrite);
+    msgWrite[1] = payloadSize;
+    memcpy(&msgWrite[2], msg, (size_t)payloadSize);
+    spiDriver->sendCmd(payloadSize + 2, msgWrite);
 }
 
 /// @brief Read the first byte of data from RX FIFO for the packet size
 void RadioAPI::get_RX_FIFO_Count()
 {
     spiDriver->readData(0x77, 1, 0, spiBuff);
-    pktSize = spiBuff[0];
+    payloadSize = spiBuff[0];
 }
 
 /// @brief API command to enter TX mode and transmit data written in TX FIFO
@@ -115,8 +115,8 @@ void RadioAPI::start_TX_Cmd()
     spiBuff[0] = 0x31;
     spiBuff[1] = tx_Channel;
     spiBuff[2] = 0x30;
-    spiBuff[3] = (uint8_t)((pktSize + 1) >> 8);
-    spiBuff[4] = (uint8_t)(pktSize + 1);
+    spiBuff[3] = (uint8_t)((payloadSize + 1) >> 8);
+    spiBuff[4] = (uint8_t)(payloadSize + 1);
     spiBuff[5] = 0x00;
     spiBuff[6] = 0x00;
 
@@ -127,7 +127,7 @@ void RadioAPI::start_TX_Cmd()
 void RadioAPI::radio_Start_TX()
 {
     const char msg[] = RADIO_CONFIGURATION_DATA_CUSTOM_PAYLOAD;
-    pktSize = RADIO_CONFIGURATION_DATA_RADIO_PACKET_LENGTH;
+    payloadSize = RADIO_CONFIGURATION_DATA_RADIO_PACKET_LENGTH;
     clearInterrupts();
     writeTXFifo(msg);
     start_TX_Cmd();
@@ -136,7 +136,7 @@ void RadioAPI::radio_Start_TX()
 /// @brief Prepare the radio to enter TX mode and transmit a custom packet
 void RadioAPI::radio_Start_TX(const char *msg)
 {
-    pktSize = strlen(msg);
+    payloadSize = strlen(msg);
     clearInterrupts();
     clearFifo(0X01);
     writeTXFifo(msg);
@@ -171,7 +171,7 @@ void RadioAPI::radio_Start_RX()
 void RadioAPI::read_RX_FIFO(const char *msg)
 {
     get_RX_FIFO_Count();
-    spiDriver->readData(0x77, pktSize, 0, (uint8_t *)msg);
+    spiDriver->readData(0x77, payloadSize, 0, (uint8_t *)msg);
     clearFifo(0x02);
     delayMicroseconds(500);
     clearInterrupts();

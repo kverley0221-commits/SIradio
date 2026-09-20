@@ -9,6 +9,10 @@ SIradio::SIradio(uint8_t _sdn, uint8_t _cs, uint8_t _nirq)
 {
     _sdnPin = _sdn;
     _nirqPin = _nirq;
+    index_INT_CHIP_PEND = -1;
+    index_INT_MODEM_PEND = -1;
+    index_INT_PH_PEND = -1;
+    index_LATCHED_RSSI = -1;
     radioAPI = new RadioAPI(_cs);
     pinMode(_sdnPin, OUTPUT);
     pinMode(_nirqPin, INPUT);
@@ -20,6 +24,11 @@ SIradio::SIradio(uint8_t _sdn, uint8_t _cs, uint8_t _nirq)
 SIradio::SIradio(uint8_t _sdn, uint8_t _cs)
 {
     _sdnPin = _sdn;
+    _nirqPin = -1;
+    index_INT_CHIP_PEND = -1;
+    index_INT_MODEM_PEND = -1;
+    index_INT_PH_PEND = -1;
+    index_LATCHED_RSSI = -1;
     radioAPI = new RadioAPI(_cs);
     pinMode(_sdnPin, OUTPUT);
     pinMode(_nirqPin, INPUT);
@@ -42,18 +51,40 @@ bool SIradio::begin()
 
     radioAPI->get_FRR_Mode(frr_modes);
 
+    for (int i = 0; i < 4; i++)
+    {
+        switch (frr_modes[i])
+        {
+        case 4:
+            index_INT_PH_PEND = i;
+            break;
+        case 6:
+            index_INT_MODEM_PEND = i;
+            break;
+        case 8:
+            index_INT_CHIP_PEND = i;
+            break;
+        case 10:
+            index_LATCHED_RSSI = i;
+            break;
+
+        default:
+            break;
+        }
+    }
+
     return true;
 }
 
-/// @brief Set the radio channel number to transmit on 
-/// @param TX_Channel 
+/// @brief Set the radio channel number to transmit on
+/// @param TX_Channel
 void SIradio::set_TX_Channel(uint8_t TX_Channel)
 {
     radioAPI->radio_Set_TX_Channel(TX_Channel);
 }
 
-/// @brief Set the radio channel number to receive on 
-/// @param RX_Channel 
+/// @brief Set the radio channel number to receive on
+/// @param RX_Channel
 void SIradio::set_RX_Channel(uint8_t RX_Channel)
 {
     radioAPI->radio_Set_RX_Channel(RX_Channel);
@@ -62,18 +93,18 @@ void SIradio::set_RX_Channel(uint8_t RX_Channel)
 /// @brief Parse through FRRs to find one with the desired mode
 /// @param mode Desired mode
 /// @return If an FRR was found with the desired mode
-bool SIradio::found_FRR_With_Desired_Mode(uint8_t mode)
-{
-    for (int i = 0; i < 4; i++)
-    {
-        if (frr_modes[i] == mode)
-        {
-            frr_index = i;
-            return true;
-        }
-    }
-    return false;
-}
+// bool SIradio::found_FRR_With_Desired_Mode(uint8_t mode)
+// {
+//     for (int i = 0; i < 4; i++)
+//     {
+//         if (frr_modes[i] == mode)
+//         {
+//             frr_index = i;
+//             return true;
+//         }
+//     }
+//     return false;
+// }
 
 /// @brief Poll the radio interrupt
 /// @param int_Group Which group of interrupts to process
@@ -102,9 +133,10 @@ bool SIradio::radio_FRR_INT_Stats(uint8_t int_Bit)
 bool SIradio::send_Fixed_Packet()
 {
     radioAPI->radio_Start_TX();
-    if (found_FRR_With_Desired_Mode((uint8_t)FRR_MODES::INT_PH_PEND))
+    if (index_INT_PH_PEND != -1)
         return radio_FRR_INT_Stats(PACKET_SENT_PEND);
-    return radio_Poll_INT_Stats((uint8_t)INT_GROUPS::PH, PACKET_SENT_PEND);
+    else if (_nirqPin != -1)
+        return radio_Poll_INT_Stats((uint8_t)INT_GROUPS::PH, PACKET_SENT_PEND);
 }
 
 /// @brief Send the custom packet typed by user
@@ -113,18 +145,21 @@ bool SIradio::send_Fixed_Packet()
 bool SIradio::sendMessage(String msg)
 {
     radioAPI->radio_Start_TX(msg.c_str());
-    if (found_FRR_With_Desired_Mode((uint8_t)FRR_MODES::INT_PH_PEND))
+    if (index_INT_PH_PEND != -1)
     {
-        delay(20);
+        radioAPI->get_FRR_Data(index_INT_PH_PEND);
+        delay(25);
         return radio_FRR_INT_Stats(PACKET_SENT_PEND);
     }
-    return radio_Poll_INT_Stats((uint8_t)INT_GROUPS::PH, PACKET_SENT_PEND);
+    else if (_nirqPin != -1)
+        return radio_Poll_INT_Stats((uint8_t)INT_GROUPS::PH, PACKET_SENT_PEND);
+    return false;
 }
 
 /// @brief Enter the radio into RX mode
 void SIradio::radio_RX_Mode()
 {
-    memset(msg, 0, sizeof(msg));
+    memset(msgBuffer, 0, sizeof(msgBuffer));
     radioAPI->radio_Start_RX();
 }
 
@@ -133,18 +168,14 @@ void SIradio::radio_RX_Mode()
 bool SIradio::check_Received_Packet()
 {
     bool pkt_Recevied = false;
-    if (found_FRR_With_Desired_Mode((uint8_t)FRR_MODES::INT_PH_PEND))
-    {
-        if (radio_FRR_INT_Stats(PACKET_RX_PEND))
-            pkt_Recevied = true;
-    }
-    else if (radio_Poll_INT_Stats((uint8_t)INT_GROUPS::PH, PACKET_RX_PEND))
-    {
+    if (index_INT_PH_PEND != -1)
+        pkt_Recevied = radio_FRR_INT_Stats(PACKET_RX_PEND);
+    else if (_nirqPin != -1)
         pkt_Recevied = true;
-    }
+
     if (pkt_Recevied)
     {
-        radioAPI->read_RX_FIFO(msg);
+        radioAPI->read_RX_FIFO(msgBuffer);
         return true;
     }
     return false;

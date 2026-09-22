@@ -2,7 +2,7 @@
 #include "SIradio.h"
 
 // SIradio(sdnPin, csPin, nirqPin)
-SIradio radio(15, 17);
+SIradio radio(15, 17, 14);
 
 String msgStr;
 
@@ -11,8 +11,8 @@ void setup()
   Serial.begin(115200);
   delay(10000); // allow time to open the serial monitor
 
-  radio.begin();
-  radio.radio_RX_Mode();
+  radio.begin() ? Serial.println("Radio config completed") : Serial.println("Radio config fialed");
+  // radio.radio_RX_Mode();
 }
 
 void loop()
@@ -23,10 +23,10 @@ void loop()
     msgStr.trim();
 
     Serial.println("Sending: " + msgStr);
-    radio.sendMessage(msgStr) ? Serial.println("Packet sent") : Serial.println("Packet was not sent");
-    radio.radio_RX_Mode();
+    radio.sendPacket(msgStr) ? Serial.println("Packet sent") : Serial.println("Packet was not sent");
+    // radio.radio_RX_Mode();
   }
 
-  if (radio.check_Received_Packet())
-    radio.printMsg();
+  // if (radio.check_Received_Packet())
+  //   radio.printMsg();
 }

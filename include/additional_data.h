@@ -1,25 +1,38 @@
 #pragma once
 
-enum class INT_GROUPS
+// enum class FRR_MODES
+// {
+//     DISABLED,
+//     INT_STATUS,
+//     INT_PEND,
+//     INT_PH_STATUS,
+//     INT_PH_PEND,
+//     INT_MODEM_STATUS,
+//     INT_MODEM_PEND,
+//     INT_CHIP_STATUS,
+//     INT_CHIP_PEND,
+//     CURRENT_STATE,
+//     LATCHED_RSSI
+// };
+
+struct pendingType
 {
-    PH,
-    MODEM,
-    CHIP
+    uint8_t INT_PEND; // LSB
+    uint8_t PH_PEND;
+    uint8_t MODEM_PEND;
+    uint8_t CHIP_PEND; // MSB
 };
 
-enum class FRR_MODES
+union pending_Interrupts
 {
-    DISABLED,
-    INT_STATUS,
-    INT_PEND,
-    INT_PH_STATUS,
-    INT_PH_PEND,
-    INT_MODEM_STATUS,
-    INT_MODEM_PEND,
-    INT_CHIP_STATUS,
-    INT_CHIP_PEND,
-    CURRENT_STATE,
-    LATCHED_RSSI
+    pendingType type;
+    uint32_t interrupt;
+};
+
+union frr_registers
+{
+    uint8_t registers[4];
+    uint32_t frr_values;
 };
 
 #define RX_FIFO_ALMOST_FULL_PEND 0x01
@@ -36,3 +49,8 @@ enum class FRR_MODES
 
 #define SPLIT_FIFO_MODE_ENABLE 0X00
 #define SPLIT_FIFO_MODE_DISABLE 0X10
+
+#define TX_THRESHOLD_INDEX 0x0B
+#define TX_THRESHOLD_INDEX 0x0C
+
+#define FIFO_MODE_INDEX 0x03

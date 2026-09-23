@@ -51,6 +51,6 @@ union frr_registers
 #define SPLIT_FIFO_MODE_DISABLE 0X10
 
 #define TX_THRESHOLD_INDEX 0x0B
-#define TX_THRESHOLD_INDEX 0x0C
+#define RX_THRESHOLD_INDEX 0x0C
 
 #define FIFO_MODE_INDEX 0x03

@@ -8,8 +8,6 @@ private:
     SPIDriver *spiDriver = NULL;
     uint8_t spiBuff[16];
 
-    inline void start_RX_Cmd();
-    inline void get_RX_FIFO_Count();
     inline void set_property(uint8_t grp, uint8_t index, uint8_t numProps, uint8_t* data);
     inline void get_property(uint8_t grp, uint8_t index, uint8_t numProps, uint8_t* data);
     
@@ -25,9 +23,9 @@ private:
     uint8_t get_threshold_value(uint8_t index);
     uint8_t get_global_config(uint8_t index);
     void set_Packet_Length(uint16_t pkt_size);
-    // void radio_Start_TX();
-    // void radio_Start_TX(const char* msg);
-    // void radio_Start_RX();
-    // void read_RX_FIFO(const char* msg);
+    void start_rx_cmd(uint8_t channel);
+    bool is_fifo_empty();
+    void read_rx_fifo_cmd(const char* msg, size_t len);
+    uint16_t get_payload_size();
     // void radio_Enable_Split_FIFO(bool enable_Bit);
 };

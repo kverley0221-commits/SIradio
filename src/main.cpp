@@ -12,7 +12,6 @@ void setup()
   delay(10000); // allow time to open the serial monitor
 
   radio.begin() ? Serial.println("Radio config completed") : Serial.println("Radio config fialed");
-  // radio.radio_RX_Mode();
 }
 
 void loop()
@@ -23,7 +22,15 @@ void loop()
     msgStr.trim();
 
     Serial.println("Sending: " + msgStr);
-    radio.sendPacket(msgStr) ? Serial.println("Packet sent") : Serial.println("Packet was not sent");
+    radio.sendPacket(msgStr);
+    uint16_t j = 0;
+    bool int_status = radio.packetSent();
+    while (!int_status && (j < 500))
+    {
+      int_status = radio.packetSent();
+      delayMicroseconds(10);
+    }
+    int_status ? Serial.println("Packet sent") : Serial.println("Packet not sent");
     // radio.radio_RX_Mode();
   }
 

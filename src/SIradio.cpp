@@ -69,130 +69,128 @@ bool SIradio::begin()
         }
     }
 
+    _tx_threshold = radioAPI->get_threshold_value(TX_THRESHOLD_INDEX);
+    _rx_threshold = radioAPI->get_threshold_value(RX_THRESHOLD_INDEX);
+
+    fifo_mode = radioAPI->get_global_config(FIFO_MODE_INDEX);
+    fifo_mode &= 0x10;
+    fifo_mode ? fifo_limit = 128 : fifo_limit = 64;
+
     return true;
 }
 
 /// @brief Send the custom packet typed by user
 /// @param msg Serial message typed by user
 /// @return If the radio sent the packet or not
-bool SIradio::sendPacket(String msg)
+void SIradio::sendPacket(String msg)
 {
-    uint8_t fifo_limit;
-    bool int_status;
-    uint16_t j;
-    uint8_t fifo_mode = radioAPI->get_global_config(FIFO_MODE_INDEX) & 0x10;
-    fifo_mode ? fifo_limit = 128 : fifo_limit = 64;
-
-    if (msg.length() > fifo_limit)
+    radioAPI->clear_fifo_cmd(1u);
+    radioAPI->clear_interrupts_cmd();
+    if (msg.length() >= fifo_limit)
     {
-        const char *ptr = msg.c_str();
-        const uint8_t threshold = radioAPI->get_threshold_value(TX_THRESHOLD_INDEX);
-        uint16_t total_bytes = msg.length();
-        uint16_t bytes_remaining = total_bytes;
-        uint16_t start_index = 0; // Byte position after sending the size byte and first partition of characters
-
+        // Serial.println("Beginning to send long packet");
+        msgPtr = msg.c_str();
+        payload_index = 0;
+        bytes_remaining = msg.length() + 1;
         radioAPI->set_Packet_Length(msg.length());
-        radioAPI->write_tx_fifo_cmd(ptr, fifo_limit - 1, true); // Subtracting 1 so that only the first 63 bytes + the size byte get trasmitted first
-        bytes_remaining -= (fifo_limit - 1);
-        start_index += (fifo_limit - 1);
+        radioAPI->write_tx_fifo_cmd(msgPtr, (fifo_limit - 1), true);
         radioAPI->start_tx_cmd(_tx_channel, 0);
-
-        frr_reg.frr_values = radioAPI->frr_read_cmd();
-        int_status = (frr_reg.registers[index_INT_PH_PEND] & TX_FIFO_ALMOST_EMPTY_PEND) == TX_FIFO_ALMOST_EMPTY_PEND;
-        uint8_t loops = msg.length() / fifo_limit; // How many partions of the message should occur
-
-        for (int i = 0; i < loops; i++)
-        {
-            j = 0;
-            while (!int_status && (j++ < 500))
-            {
-                frr_reg.frr_values = radioAPI->frr_read_cmd();
-                int_status = (frr_reg.registers[index_INT_PH_PEND] & TX_FIFO_ALMOST_EMPTY_PEND) == TX_FIFO_ALMOST_EMPTY_PEND;
-                delayMicroseconds(100);
-            }
-            if (int_status)
-            {
-                Serial.println("TX FIFO ALMOST EMPTY INTERRUPT TRIGGERED");
-                if (bytes_remaining < threshold)
-                    radioAPI->write_tx_fifo_cmd(&ptr[start_index], bytes_remaining, false);
-                else
-                {
-                    radioAPI->write_tx_fifo_cmd(&ptr[start_index], threshold, false);
-                    bytes_remaining -= threshold;
-                    start_index += threshold;
-                }
-            }
-            else
-                return false;
-            radioAPI->clear_interrupts_cmd();
-        }
+        payload_index += (fifo_limit - 1);
+        bytes_remaining -= (fifo_limit - 1);
+        // Serial.println("Done sending first partition of long packet");
     }
-    Serial.println("Finished sending long packet");
+    else
+    {
+        radioAPI->write_tx_fifo_cmd(msg.c_str(), msg.length(), true);
+        radioAPI->start_tx_cmd(_tx_channel, msg.length());
+    }
+}
 
+bool SIradio::packetSent()
+{
     if (index_INT_PH_PEND != -1)
     {
-        j = 0;
-        int_status = (frr_reg.registers[index_INT_PH_PEND] & PACKET_SENT_PEND) == PACKET_SENT_PEND;
-        while(!int_status && (j++ < 1000))
+        // Serial.println("Checking FRR for PH_INT");
+        frr_reg.frr_values = radioAPI->frr_read_cmd();
+        uint8_t int_status = frr_reg.registers[index_INT_PH_PEND];
+
+        if ((int_status & PACKET_SENT_PEND) == PACKET_SENT_PEND)
         {
-            delay(10);
-            frr_reg.frr_values = radioAPI->frr_read_cmd();
-            int_status = (frr_reg.registers[index_INT_PH_PEND] & PACKET_SENT_PEND) == PACKET_SENT_PEND;
+            radioAPI->clear_interrupts_cmd();
+            return true;
         }
-        // frr_reg.frr_values = radioAPI->frr_read_cmd();
-        radioAPI->clear_interrupts_cmd();
-        return int_status;
+        if ((int_status & TX_FIFO_ALMOST_EMPTY_PEND) == TX_FIFO_ALMOST_EMPTY_PEND)
+        {
+            if (bytes_remaining < _tx_threshold)
+                radioAPI->write_tx_fifo_cmd(&msgPtr[payload_index], bytes_remaining, false);
+            else
+            {
+                radioAPI->write_tx_fifo_cmd(&msgPtr[payload_index], _tx_threshold, false);
+                bytes_remaining -= _tx_threshold;
+                payload_index += _tx_threshold;
+            }
+            radioAPI->clear_interrupts_cmd();
+            return false;
+        }
     }
     else if (_nirqPin != -1)
-        return poll_int_status((uint8_t)PACKET_SENT_PEND);
+    {
+        // Serial.println("Checking NIRQ for PH_INT");
+        if (!digitalRead(_nirqPin))
+        {
+            int_status.interrupt = radioAPI->clear_interrupts_cmd();
+            if ((int_status.type.PH_PEND & PACKET_SENT_PEND) == PACKET_SENT_PEND)
+                return true;
 
+            if ((int_status.type.PH_PEND & TX_FIFO_ALMOST_EMPTY_PEND) == TX_FIFO_ALMOST_EMPTY_PEND)
+            {
+                if (bytes_remaining < _tx_threshold)
+                    radioAPI->write_tx_fifo_cmd(&msgPtr[payload_index], bytes_remaining, false);
+                else
+                {
+                    radioAPI->write_tx_fifo_cmd(&msgPtr[payload_index], _tx_threshold, false);
+                    bytes_remaining -= _tx_threshold;
+                    payload_index += _tx_threshold;
+                }
+                radioAPI->clear_interrupts_cmd();
+                return false;
+            }
+        }
+    }
     return false;
 }
 
-/// @brief Poll the NIRQ pin for interrupts
-/// @param int_Bit Interrupt bit we care for
-/// @return If the bit is set high or low
-bool SIradio::poll_int_status(uint8_t int_Bit)
+/// @brief Enter the radio into RX mode
+void SIradio::rxMode()
 {
-    uint16_t i = 0;
-    while (digitalRead(_nirqPin) && (i++ < 500))
-        delayMicroseconds(100);
-    int_status.interrupt = radioAPI->clear_interrupts_cmd();
-    return (int_status.type.PH_PEND & int_Bit) == int_Bit;
+    radioAPI->clear_fifo_cmd(2);
+    radioAPI->start_rx_cmd(_rx_channel);
 }
 
-// /// @brief Process interrutps via FRR
-// /// @param int_Bit Interrupt bit we care for
-// /// @return If the bit is set high or low
-// bool SIradio::radio_FRR_INT_Stats(uint8_t int_Bit)
+/// @brief Check to see if the radio received a packet
+/// @return If the radio detected a packet or not
+// bool SIradio::transmissionDetected()
 // {
-//     uint8_t int_Status = radioAPI->get_FRR_Data(frr_index);
-//     return (int_Status & int_Bit) == int_Bit;
-// }
-
-// /// @brief Enter the radio into RX mode
-// void SIradio::radio_RX_Mode()
-// {
-//     memset(msgBuffer, 0, sizeof(msgBuffer));
-//     radioAPI->radio_Start_RX();
-// }
-
-// /// @brief Check to see if the radio received a packet
-// /// @return If the radio detected a packet or not
-// bool SIradio::check_Received_Packet()
-// {
-//     bool pkt_Recevied = false;
-//     if (index_INT_PH_PEND != -1)
-//         pkt_Recevied = radio_FRR_INT_Stats(PACKET_RX_PEND);
-//     else if (_nirqPin != -1)
-//         pkt_Recevied = true;
-
-//     if (pkt_Recevied)
+//     if(!radioAPI->is_fifo_empty())
 //     {
-//         radioAPI->read_RX_FIFO(msgBuffer);
+//         payload_size = radioAPI->get_payload_size();
+//         Serial.println(payload_size);
 //         return true;
 //     }
 //     return false;
+// }
+
+// void SIradio::readPacket()
+// {
+//     // bool int_status;
+//     // uint16_t j;
+//     uint8_t fifo_limit;
+//     uint8_t fifo_mode = radioAPI->get_global_config(FIFO_MODE_INDEX) & 0x10;
+//     fifo_mode ? fifo_limit = 128 : fifo_limit = 64;
+//     uint16_t total_bytes = payload_size;
+//     uint16_t bytes_remaining = total_bytes;
+//     uint16_t start_index = 0; // Byte position after sending the size byte and first partition of characters
+
 // }
 
 // /// @brief Have the radio spilt or fuse FIFO buffer

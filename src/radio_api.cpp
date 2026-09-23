@@ -79,7 +79,7 @@ void RadioAPI::write_tx_fifo_cmd(const char *msg, const size_t len, bool include
     if(include_size)
     {
         msgBuffer[1] = len;
-        memcpy(&msgBuffer[2], msg, len);
+        memcpy(&msgBuffer[2], msg, len); // Copy characters[0-62] into msgBuffer starting at index 2
         spiDriver->sendCmd(len + 2, msgBuffer);
 
     }
@@ -137,38 +137,44 @@ void RadioAPI::set_Packet_Length(uint16_t pkt_size)
     set_property(0x12, 2, 0x0D, spiBuff);
 }
 
-/// @brief Read the first byte of data from RX FIFO for the packet size
-// void RadioAPI::get_RX_FIFO_Count()
-// {
-//     spiDriver->readData(0x77, 1, 0, spiBuff);
-//     payloadSize = spiBuff[0];
-// }
-
 /// @brief API command to enter RX mode
-// void RadioAPI::start_RX_Cmd()
-// {
-//     spiBuff[0] = 0x32;
-//     spiBuff[1] = rx_Channel;
-//     spiBuff[2] = 0x00;
-//     spiBuff[3] = 0x00;
-//     spiBuff[4] = 0x00;
-//     spiBuff[5] = 0x08;
-//     spiBuff[6] = 0x08;
-//     spiBuff[7] = 0x08;
+void RadioAPI::start_rx_cmd(uint8_t channel)
+{
+    spiBuff[0] = 0x32;
+    spiBuff[1] = channel;
+    spiBuff[2] = 0x00;
+    spiBuff[3] = 0x00;
+    spiBuff[4] = 0x00;
+    spiBuff[5] = 0x08;
+    spiBuff[6] = 0x08;
+    spiBuff[7] = 0x08;
 
-//     spiDriver->sendCmd(8, spiBuff);
-// }
+    spiDriver->sendCmd(8, spiBuff);
+}
+
+bool RadioAPI::is_fifo_empty()
+{
+    spiBuff[0] = 0x15;
+    spiBuff[1] = 0u;
+
+    spiDriver->sendCmdGetResponse(2, spiBuff, 2, spiBuff);
+    return spiBuff[0] == 0;
+}
 
 /// @brief Read data stored in RX FIFO
 /// @param msg Array stored with the RX FIFO data
-// void RadioAPI::read_RX_FIFO(const char *msg)
-// {
-//     get_RX_FIFO_Count();
-//     spiDriver->readData(0x77, payloadSize, 0, (uint8_t *)msg);
-//     clearFifo(0x02);
-//     delayMicroseconds(500);
-//     clearInterrupts();
-// }
+void RadioAPI::read_rx_fifo_cmd(const char *msg, size_t len)
+{
+    spiDriver->readData(0x77, len, 0, (uint8_t*)msg);
+}
+
+uint16_t RadioAPI::get_payload_size()
+{
+    spiDriver->readData(0x77, 1, 0, spiBuff);
+    uint16_t payload_size = spiBuff[0];
+    Serial.println(payload_size);
+    return spiBuff[0];
+}
 
 /// @brief API command to configure certain properties of the radio
 /// @param grp byte value specifing group

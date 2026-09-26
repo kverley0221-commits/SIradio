@@ -34,10 +34,13 @@
 // CONFIGURATION PARAMETERS
 #define RADIO_CONFIGURATION_DATA_RADIO_XO_FREQ                     30000000L
 #define RADIO_CONFIGURATION_DATA_CHANNEL_NUMBER                    0x00
-#define RADIO_CONFIGURATION_DATA_RADIO_PACKET_LENGTH               0x07
+#define RADIO_CONFIGURATION_DATA_RADIO_PACKET_LENGTH               0x40
 #define RADIO_CONFIGURATION_DATA_RADIO_STATE_AFTER_POWER_UP        0x03
 #define RADIO_CONFIGURATION_DATA_RADIO_DELAY_CNT_AFTER_RESET       0xF000
-#define RADIO_CONFIGURATION_DATA_CUSTOM_LONG_PAYLOAD					   {0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5}
+#define RADIO_CONFIGURATION_DATA_CUSTOM_PAYLOAD					   {0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, \
+0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, \
+0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, 0xC5, \
+0xC5, 0xC5, 0xC5, 0xC5}
 
 
 
@@ -53,7 +56,7 @@
 // Command:                  RF_GPIO_PIN_CFG
 // Description:              Configures the GPIO pins.
 */
-#define RF_GPIO_PIN_CFG 0x13, 0x60, 0x63, 0x00, 0x00, 0x67, 0x00, 0x00
+#define RF_GPIO_PIN_CFG 0x13, 0x60, 0x5A, 0x58, 0x61, 0x67, 0x00, 0x00
 
 /*
 // Set properties:           RF_GLOBAL_XO_TUNE_2
@@ -88,7 +91,7 @@
 //   INT_CTL_ENABLE - This property provides for global enabling of the three interrupt groups (Chip, Modem and Packet Handler) in order to generate HW interrupts at the NIRQ pin.
 //   INT_CTL_PH_ENABLE - Enable individual interrupt sources within the Packet Handler Interrupt Group to generate a HW interrupt on the NIRQ output pin.
 */
-#define RF_INT_CTL_ENABLE_2 0x11, 0x01, 0x02, 0x00, 0x01, 0x22
+#define RF_INT_CTL_ENABLE_2 0x11, 0x01, 0x02, 0x00, 0x01, 0x3B
 
 /*
 // Set properties:           RF_FRR_CTL_A_MODE_4
@@ -102,7 +105,7 @@
 //   FRR_CTL_C_MODE - Fast Response Register C Configuration.
 //   FRR_CTL_D_MODE - Fast Response Register D Configuration.
 */
-#define RF_FRR_CTL_A_MODE_4 0x11, 0x02, 0x04, 0x00, 0x04, 0x00, 0x00, 0x00
+#define RF_FRR_CTL_A_MODE_4 0x11, 0x02, 0x04, 0x00, 0x04, 0x06, 0x00, 0x00
 
 /*
 // Set properties:           RF_PREAMBLE_TX_LENGTH_9
@@ -181,7 +184,7 @@
 //   PKT_FIELD_3_LENGTH_7_0 - Unsigned 13-bit Field 3 length value.
 //   PKT_FIELD_3_CONFIG - General data processing and packet configuration bits for Field 3.
 */
-#define RF_PKT_RX_THRESHOLD_12 0x11, 0x12, 0x0C, 0x0C, 0x30, 0x00, 0x07, 0x04, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+#define RF_PKT_RX_THRESHOLD_12 0x11, 0x12, 0x0C, 0x0C, 0x30, 0x00, 0x05, 0x04, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 
 /*
 // Set properties:           RF_PKT_FIELD_3_CRC_CONFIG_12
@@ -380,42 +383,24 @@
 #define RF_MODEM_AGC_WINDOW_SIZE_12 0x11, 0x20, 0x0C, 0x38, 0x11, 0x6D, 0x6D, 0x80, 0x02, 0xFF, 0xFF, 0x00, 0x2A, 0x0C, 0xA4, 0x22
 
 /*
-// Set properties:           RF_MODEM_RAW_CONTROL_5
-// Number of properties:     5
+// Set properties:           RF_MODEM_RAW_CONTROL_10
+// Number of properties:     10
 // Group ID:                 0x20
 // Start ID:                 0x45
-// Default values:           0x02, 0x00, 0xA3, 0x02, 0x80, 
+// Default values:           0x02, 0x00, 0xA3, 0x02, 0x80, 0xFF, 0x0C, 0x01, 0x00, 0x40, 
 // Descriptions:
 //   MODEM_RAW_CONTROL - Defines gain and enable controls for raw / nonstandard mode.
 //   MODEM_RAW_EYE_1 - 11 bit eye-open detector threshold.
 //   MODEM_RAW_EYE_0 - 11 bit eye-open detector threshold.
 //   MODEM_ANT_DIV_MODE - Antenna diversity mode settings.
 //   MODEM_ANT_DIV_CONTROL - Specifies controls for the Antenna Diversity algorithm.
-*/
-#define RF_MODEM_RAW_CONTROL_5 0x11, 0x20, 0x05, 0x45, 0x83, 0x01, 0x00, 0x01, 0x00
-
-/*
-// Set properties:           RF_MODEM_RSSI_JUMP_THRESH_1
-// Number of properties:     1
-// Group ID:                 0x20
-// Start ID:                 0x4B
-// Default values:           0x0C, 
-// Descriptions:
+//   MODEM_RSSI_THRESH - Configures the RSSI threshold.
 //   MODEM_RSSI_JUMP_THRESH - Configures the RSSI Jump Detection threshold.
-*/
-#define RF_MODEM_RSSI_JUMP_THRESH_1 0x11, 0x20, 0x01, 0x4B, 0x06
-
-/*
-// Set properties:           RF_MODEM_RSSI_CONTROL2_2
-// Number of properties:     2
-// Group ID:                 0x20
-// Start ID:                 0x4D
-// Default values:           0x00, 0x40, 
-// Descriptions:
+//   MODEM_RSSI_CONTROL - Control of the averaging modes and latching time for reporting RSSI value(s).
 //   MODEM_RSSI_CONTROL2 - RSSI Jump Detection control.
 //   MODEM_RSSI_COMP - RSSI compensation value.
 */
-#define RF_MODEM_RSSI_CONTROL2_2 0x11, 0x20, 0x02, 0x4D, 0x18, 0x40
+#define RF_MODEM_RAW_CONTROL_10 0x11, 0x20, 0x0A, 0x45, 0x83, 0x01, 0x00, 0x01, 0x00, 0xFF, 0x06, 0x00, 0x18, 0x40
 
 /*
 // Set properties:           RF_MODEM_RAW_SEARCH2_2
@@ -632,9 +617,7 @@
         0x07, RF_MODEM_AFC_LIMITER_1_3, \
         0x05, RF_MODEM_AGC_CONTROL_1, \
         0x10, RF_MODEM_AGC_WINDOW_SIZE_12, \
-        0x09, RF_MODEM_RAW_CONTROL_5, \
-        0x05, RF_MODEM_RSSI_JUMP_THRESH_1, \
-        0x06, RF_MODEM_RSSI_CONTROL2_2, \
+        0x0E, RF_MODEM_RAW_CONTROL_10, \
         0x06, RF_MODEM_RAW_SEARCH2_2, \
         0x06, RF_MODEM_SPIKE_DET_2, \
         0x05, RF_MODEM_RSSI_MUTE_1, \
@@ -658,7 +641,7 @@
 #define RADIO_CONFIGURATION_DATA_RADIO_PACKET_LENGTH_DEFAULT               0x10
 #define RADIO_CONFIGURATION_DATA_RADIO_STATE_AFTER_POWER_UP_DEFAULT        0x01
 #define RADIO_CONFIGURATION_DATA_RADIO_DELAY_CNT_AFTER_RESET_DEFAULT       0x1000
-#define RADIO_CONFIGURATION_DATA_CUSTOM_PAYLOAD_DEFAULT  				   {0x42, 0x55, 0x54, 0x54, 0x4F, 0x4E, 0x31} // BUTTON1 
+#define RADIO_CONFIGURATION_DATA_CUSTOM_PAYLOAD_DEFAULT					   {0x42, 0x55, 0x54, 0x54, 0x4F, 0x4E, 0x31} // BUTTON1 
 
 #define RADIO_CONFIGURATION_DATA_RADIO_PATCH_INCLUDED                      0x00
 #define RADIO_CONFIGURATION_DATA_RADIO_PATCH_SIZE                          0x00
@@ -688,8 +671,8 @@
 #define RADIO_CONFIGURATION_DATA_RADIO_DELAY_CNT_AFTER_RESET  RADIO_CONFIGURATION_DATA_RADIO_DELAY_CNT_AFTER_RESET_DEFAULT 
 #endif
 
-#ifndef RADIO_CONFIGURATION_DATA_CUSTOM_LONG_PAYLOAD
-#define RADIO_CONFIGURATION_DATA_CUSTOM_LONG_PAYLOAD         RADIO_CONFIGURATION_DATA_CUSTOM_PAYLOAD_DEFAULT 
+#ifndef RADIO_CONFIGURATION_DATA_CUSTOM_PAYLOAD
+#define RADIO_CONFIGURATION_DATA_CUSTOM_PAYLOAD         RADIO_CONFIGURATION_DATA_CUSTOM_PAYLOAD_DEFAULT 
 #endif
 
 #define RADIO_CONFIGURATION_DATA { \
@@ -697,8 +680,8 @@
                             RADIO_CONFIGURATION_DATA_CHANNEL_NUMBER,                   \
                             RADIO_CONFIGURATION_DATA_RADIO_PACKET_LENGTH,              \
                             RADIO_CONFIGURATION_DATA_RADIO_STATE_AFTER_POWER_UP,       \
-                            RADIO_CONFIGURATION_DATA_RADIO_DELAY_CNT_AFTER_RESET,      \
-                            Radio_Configuration_Data_Custom_Long_Payload_Array         \
+                            RADIO_CONFIGURATION_DATA_RADIO_DELAY_CNT_AFTER_RESET,       \
+                            RADIO_CONFIGURATION_DATA_CUSTOM_PAYLOAD                   \
                             }
 
 #endif /* RADIO_CONFIG_H_ */

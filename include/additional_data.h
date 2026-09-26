@@ -35,6 +35,7 @@ union frr_registers
     uint32_t frr_values;
 };
 
+// PH Interrupt Status
 #define RX_FIFO_ALMOST_FULL_PEND 0x01
 #define TX_FIFO_ALMOST_EMPTY_PEND 0x02
 #define ALT_CRC_ERROR_PEND 0x04
@@ -43,6 +44,16 @@ union frr_registers
 #define PACKET_SENT_PEND 0x20
 #define FILTER_MISS_PEND 0x40
 #define FILTER_MATCH_PEND 0x80
+
+// Modem Interrupt Status
+#define SYNC_DETECT_PEND 0x01
+#define PREAMBLE_DETECT 0x02
+#define INVALID_PREAMBLE_PEND 0x04
+#define RSSI_PEND 0x08
+#define RSSI_JUMP_PEND 0x10
+#define INVALID_SYNC_PEND 0x20
+#define POSTAMBLE_DETECT_PEND 0x40
+#define RSSI_LATCH_PEND 0x80
 
 #define SI446X_CMD_FIFO_INFO_ARG_FIFO_TX_BIT 0x01
 #define SI446X_CMD_FIFO_INFO_ARG_FIFO_RX_BIT 0x02
